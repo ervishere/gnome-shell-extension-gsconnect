@@ -262,14 +262,22 @@ export function setup(extensionPath) {
     }
 
     // Init GResources
-    Gio.Resource.load(
-        GLib.build_filenamev([Config.PACKAGE_DATADIR, `${Config.APP_ID}.gresource`])
-    )._register();
+    try {
+        Gio.Resource.load(
+            GLib.build_filenamev([Config.PACKAGE_DATADIR, `${Config.APP_ID}.gresource`])
+        )._register();
+    } catch (e) {
+        // Resource bundle may not exist in uncompiled/test environments
+    }
 
     // Init GSchema
-    Config.GSCHEMA = Gio.SettingsSchemaSource.new_from_directory(
-        Config.GSETTINGS_SCHEMA_DIR,
-        Gio.SettingsSchemaSource.get_default(),
-        false
-    );
+    try {
+        Config.GSCHEMA = Gio.SettingsSchemaSource.new_from_directory(
+            Config.GSETTINGS_SCHEMA_DIR,
+            Gio.SettingsSchemaSource.get_default(),
+            false
+        );
+    } catch (e) {
+        Config.GSCHEMA = Gio.SettingsSchemaSource.get_default();
+    }
 }

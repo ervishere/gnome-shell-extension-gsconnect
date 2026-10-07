@@ -192,7 +192,8 @@ const Device = GObject.registerClass({
         // Bluetooth connections have no certificate so we use the host address
         if (this.connection_type === 'bluetooth') {
             // TRANSLATORS: Bluetooth address for remote device
-            return _('Bluetooth device at %s').format('???');
+            const addr = this.channel.address.replace('bluetooth://', '') || '???';
+            return _('Bluetooth device at %s').format(addr);
         }
 
         // FIXME: another ugly reach-around

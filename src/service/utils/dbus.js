@@ -78,35 +78,37 @@ export function wrapObject(interfaceInfo, obj) {
     );
     const impl = Gio.DBusExportedObject.wrapJSObject(interfaceInfo, proxyObj);
 
-    // Automatically forward known signals
-    obj.connect(
-        'notify',
-        (_, pspec) => {
-            const name = toDBusCase(pspec.name);
-            const propertyInfo = interfaceInfo.lookup_property(name);
-
-            if (propertyInfo === null)
-                return;
-
-            impl.emit_property_changed(
-                name,
-                new GLib.Variant(
-                    propertyInfo.signature,
-                    // Adjust for GJS's '-'/'_' conversion
-                    obj[pspec.name.replace(/-/gi, '_')]
-                )
-            );
-        }
-    );
-
-    for (const signal of interfaceInfo.signals) {
-        const type = `(${signal.args.map(arg => arg.signature).join('')})`;
+    if (typeof obj.connect === 'function') {
+        // Automatically forward known signals
         obj.connect(
-            signal.name,
-            (_, ...args) => {
-                impl.emit_signal(signal.name, new GLib.Variant(type, args));
+            'notify',
+            (_, pspec) => {
+                const name = toDBusCase(pspec.name);
+                const propertyInfo = interfaceInfo.lookup_property(name);
+
+                if (propertyInfo === null)
+                    return;
+
+                impl.emit_property_changed(
+                    name,
+                    new GLib.Variant(
+                        propertyInfo.signature,
+                        // Adjust for GJS's '-'/'_' conversion
+                        obj[pspec.name.replace(/-/gi, '_')]
+                    )
+                );
             }
         );
+
+        for (const signal of interfaceInfo.signals) {
+            const type = `(${signal.args.map(arg => arg.signature).join('')})`;
+            obj.connect(
+                signal.name,
+                (_, ...args) => {
+                    impl.emit_signal(signal.name, new GLib.Variant(type, args));
+                }
+            );
+        }
     }
 
     return impl;

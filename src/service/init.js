@@ -96,12 +96,31 @@ if (Config.IS_USER) {
 
 // Load DBus interfaces
 Config.DBUS = (() => {
-    const bytes = Gio.resources_lookup_data(
-        GLib.build_filenamev([Config.APP_PATH, `${Config.APP_ID}.xml`]),
-        Gio.ResourceLookupFlags.NONE
-    );
+    let xml = '';
+    try {
+        const bytes = Gio.resources_lookup_data(
+            GLib.build_filenamev([Config.APP_PATH, `${Config.APP_ID}.xml`]),
+            Gio.ResourceLookupFlags.NONE
+        );
+        xml = new TextDecoder().decode(bytes.toArray());
+    } catch (e) {
+        const possiblePaths = [
+            GLib.build_filenamev([GLib.path_get_dirname(Config.PACKAGE_DATADIR), 'data', `${Config.APP_ID}.xml`]),
+            GLib.build_filenamev([GLib.get_current_dir(), 'data', `${Config.APP_ID}.xml`]),
+        ];
+        for (const path of possiblePaths) {
+            try {
+                const [, contents] = GLib.file_get_contents(path);
+                xml = new TextDecoder().decode(contents);
+                break;
+            } catch {
+                // try next
+            }
+        }
+        if (!xml)
+            xml = '<node/>';
+    }
 
-    const xml = new TextDecoder().decode(bytes.toArray());
     const dbus = Gio.DBusNodeInfo.new_for_xml(xml);
     dbus.nodes.forEach(info => info.cache_build());
 
